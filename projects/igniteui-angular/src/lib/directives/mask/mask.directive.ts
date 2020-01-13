@@ -102,11 +102,6 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
         this.nativeElement.value = val;
     }
 
-    /** @hidden @internal */
-    public get nativeElement() {
-        return this.elementRef.nativeElement;
-    }
-
     /** @hidden */
     protected get maskOptions() {
         const format = this.mask || 'CCCCCCCCCC';
@@ -122,6 +117,10 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
         return this.nativeElement.selectionEnd;
     }
 
+    private get nativeElement() {
+        return this.elementRef.nativeElement;
+    }
+
     private _key;
     private _selection;
     private _stopPropagation: boolean;
@@ -131,7 +130,7 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
 
     constructor(
         protected elementRef: ElementRef,
-        protected maskHelper: MaskParsingService,
+        protected maskParser: MaskParsingService,
         protected renderer: Renderer2) { }
 
     /** @hidden */
@@ -142,7 +141,7 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
 
     /** @hidden */
     @HostListener('keydown', ['$event'])
-    protected onKeyDown(event): void {
+    public onKeyDown(event): void {
         const key = event.keyCode || event.charCode;
 
         if (isIE() && this._stopPropagation) {
@@ -159,7 +158,7 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
 
     /** @hidden */
     @HostListener('input', ['$event'])
-    protected onInputChanged(event): void {
+    public onInputChanged(event): void {
         if (isIE() && this._stopPropagation) {
             this._stopPropagation = false;
             return;
@@ -168,13 +167,13 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
         const currentCursorPos = this.getCursorPosition();
         const hasDeleteAction = (this._key === KEYS.BACKSPACE) || (this._key === KEYS.DELETE);
         this.inputValue = this._selection !== 0 ?
-            this.maskHelper.parseValueWithSelection(
+            this.maskParser.parseValueWithSelection(
                 this.inputValue, this.maskOptions, currentCursorPos - 1, this._selection, hasDeleteAction) :
-            this.maskHelper.parseValueWithoutSelection(this.inputValue, this.maskOptions, currentCursorPos - 1);
+            this.maskParser.parseValueWithoutSelection(this.inputValue, this.maskOptions, currentCursorPos - 1);
 
-        this.setCursorPosition(this.maskHelper.cursor);
+        this.setCursorPosition(this.maskParser.cursor);
 
-        const rawVal = this.maskHelper.restoreValueFromMask(this.inputValue, this.maskOptions);
+        const rawVal = this.maskParser.restoreValueFromMask(this.inputValue, this.maskOptions);
         this.dataValue = this.includeLiterals ? this.inputValue : rawVal;
         this._onChangeCallback(this.dataValue);
 
@@ -183,32 +182,32 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
 
     /** @hidden */
     @HostListener('paste', ['$event'])
-    protected onPaste(event): void {
+    public onPaste(event): void {
         event.preventDefault();
-        this.inputValue = this.maskHelper.parseValueOnPaste(
+        this.inputValue = this.maskParser.parseValueOnPaste(
             this.inputValue, this.maskOptions, this.getCursorPosition(), event.clipboardData.getData('text'), this._selection);
-        this.setCursorPosition(this.maskHelper.cursor);
+        this.setCursorPosition(this.maskParser.cursor);
     }
 
     /** @hidden */
     @HostListener('focus', ['$event.target.value'])
-    protected onFocus(value): void {
+    public onFocus(value): void {
         if (this.focusedValuePipe) {
             if (isIE()) {
                 this._stopPropagation = true;
             }
             this.inputValue = this.focusedValuePipe.transform(value);
         } else {
-            this.inputValue = this.maskHelper.parseValueByMaskOnInit(this.inputValue, this.maskOptions);
+            this.inputValue = this.maskParser.parseValueByMaskOnInit(this.inputValue, this.maskOptions);
         }
     }
 
     /** @hidden */
     @HostListener('blur', ['$event.target.value'])
-    protected onBlur(value): void {
+    public onBlur(value): void {
         if (this.displayValuePipe) {
             this.inputValue = this.displayValuePipe.transform(value);
-        } else if (value === this.maskHelper.parseMask(this.maskOptions)) {
+        } else if (value === this.maskParser.parseMask(this.maskOptions)) {
             this.inputValue = '';
         }
     }
@@ -227,7 +226,7 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
             this.maskOptions.promptChar = this.promptChar.substring(0, 1);
         }
 
-        this.inputValue = value ? this.maskHelper.parseValueByMaskOnInit(value, this.maskOptions) : '';
+        this.inputValue = value ? this.maskParser.parseValueByMaskOnInit(value, this.maskOptions) : '';
         if (this.displayValuePipe) {
             this.inputValue = this.displayValuePipe.transform(this.inputValue);
         }
