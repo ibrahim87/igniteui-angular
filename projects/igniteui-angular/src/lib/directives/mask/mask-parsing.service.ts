@@ -1,37 +1,40 @@
+import { Injectable } from '@angular/core';
+
 /**
  * @hidden
  */
-export const MASK_FLAGS = [ 'C', '&', 'a', 'A', '?', 'L', '9', '0', '#' ];
+export const MASK_FLAGS = ['C', '&', 'a', 'A', '?', 'L', '9', '0', '#'];
 
 /**
  * @hidden
  */
 export const KEYS = {
-    Ctrl : 17,
-    Z : 90,
-    Y : 89,
-    X : 88,
-    BACKSPACE : 8,
-    DELETE : 46
-  };
-
+    Ctrl: 17,
+    Z: 90,
+    Y: 89,
+    X: 88,
+    BACKSPACE: 8,
+    DELETE: 46
+};
 
 /**
  * @hidden
  */
-export class MaskHelper {
+@Injectable({
+    providedIn: 'root'
+})
+export class MaskParsingService {
     private _cursor;
     public get cursor() {
         return this._cursor;
     }
-    public data: boolean;
 
-    public parseValueByMask(value, maskOptions, cursor): string {
+    public parseValueWithoutSelection(value, maskOptions, cursor): string {
         let inputValue: string = value;
         const mask: string = maskOptions.format;
         const literals: Map<number, string> = this.getMaskLiterals(mask);
         const literalKeys: number[] = Array.from(literals.keys());
-        const nonLiteralIndeces: number[] = this.getNonLiteralIndeces(mask, literalKeys);
+        const nonLiteralIndices: number[] = this.getNonLiteralIndeces(mask, literalKeys);
 
         if (inputValue.length < mask.length) { // BACKSPACE, DELETE
             if (inputValue === '' && cursor === -1) {
@@ -39,7 +42,7 @@ export class MaskHelper {
                 return this.parseValueByMaskOnInit(value, maskOptions);
             } // workaround for IE 'x' button
 
-            if (nonLiteralIndeces.indexOf(cursor + 1) !== -1) {
+            if (nonLiteralIndices.indexOf(cursor + 1) !== -1) {
                 inputValue = this.insertCharAt(inputValue, cursor + 1, maskOptions.promptChar);
                 this._cursor = cursor + 1;
             } else {
@@ -55,8 +58,8 @@ export class MaskHelper {
             }
         } else {
             const char = inputValue[cursor];
-            let isCharValid = this.validateCharOnPostion(char, cursor, mask);
-            if (nonLiteralIndeces.indexOf(cursor) !== -1) {
+            let isCharValid = this.validateCharOnPosition(char, cursor, mask);
+            if (nonLiteralIndices.indexOf(cursor) !== -1) {
                 inputValue = this.replaceCharAt(inputValue, cursor, '');
                 if (isCharValid) {
                     inputValue = this.replaceCharAt(inputValue, cursor, char);
@@ -71,7 +74,7 @@ export class MaskHelper {
                     if (literalKeys.indexOf(this._cursor) !== -1) {
                         this._cursor = ++cursor;
                     } else {
-                        isCharValid = this.validateCharOnPostion(char, cursor, mask);
+                        isCharValid = this.validateCharOnPosition(char, cursor, mask);
                         if (isCharValid) {
                             inputValue = this.replaceCharAt(inputValue, cursor, char);
                             this._cursor = ++cursor;
@@ -132,7 +135,7 @@ export class MaskHelper {
 
         for (let i = 0; i < nonLiteralValues.length; i++) {
             const char = nonLiteralValues[i];
-            const isCharValid = this.validateCharOnPostion(char, nonLiteralIndeces[i], mask);
+            const isCharValid = this.validateCharOnPosition(char, nonLiteralIndeces[i], mask);
 
             if (!isCharValid && char !== maskOptions.promptChar) {
                 nonLiteralValues[i] = maskOptions.promptChar;
@@ -169,7 +172,7 @@ export class MaskHelper {
         return outputVal;
     }
 
-    public parseValueByMaskUponSelection(value, maskOptions, cursor, selection): string {
+    public parseValueWithSelection(value, maskOptions, cursor, selection, hasDeleteAction): string {
         let isCharValid: boolean;
         let inputValue: string = value;
         const char: string = inputValue[cursor];
@@ -178,10 +181,10 @@ export class MaskHelper {
         const literalKeys: number[] = Array.from(literals.keys());
         const nonLiteralIndeces: number[] = this.getNonLiteralIndeces(mask, literalKeys);
 
-        if (!this.data) {
+        if (!hasDeleteAction) {
             this._cursor = cursor < 0 ? ++cursor : cursor;
             if (nonLiteralIndeces.indexOf(this._cursor) !== -1) {
-                isCharValid = this.validateCharOnPostion(char, this._cursor, mask);
+                isCharValid = this.validateCharOnPosition(char, this._cursor, mask);
                 inputValue = isCharValid ? this.replaceCharAt(inputValue, this._cursor++, char) :
                     inputValue = this.replaceCharAt(inputValue, this._cursor++, maskOptions.promptChar);
                 selection--;
@@ -202,7 +205,7 @@ export class MaskHelper {
                     cursor = this._cursor;
                     for (let i = 0; i < selection; i++) {
                         if (nonLiteralIndeces.indexOf(cursor) !== -1) {
-                            isCharValid = this.validateCharOnPostion(char, cursor, mask);
+                            isCharValid = this.validateCharOnPosition(char, cursor, mask);
                             if (isCharValid && !isMarked) {
                                 inputValue = this.insertCharAt(inputValue, cursor, char);
                                 cursor++;
@@ -248,25 +251,23 @@ export class MaskHelper {
         return inputValue;
     }
 
-    public parseValueByMaskUponCopyPaste(value, maskOptions, cursor, clipboardData, selection): string {
+    public parseValueOnPaste(value, maskOptions, cursor, clipboardData, selection): string {
         let inputValue: string = value;
         const mask: string = maskOptions.format;
         const literals: Map<number, string> = this.getMaskLiterals(mask);
         const literalKeys: number[] = Array.from(literals.keys());
-        const nonLiteralIndeces: number[] = this.getNonLiteralIndeces(mask, literalKeys);
+        const nonLiteralIndices: number[] = this.getNonLiteralIndeces(mask, literalKeys);
 
         const selectionEnd = cursor + selection;
 
         this._cursor = cursor;
-        for (const clipboardSym of clipboardData) {
-            const char = clipboardSym;
-
+        for (const char of clipboardData) {
             if (this._cursor > mask.length) {
                 return inputValue;
             }
 
-            if (nonLiteralIndeces.indexOf(this._cursor) !== -1) {
-                const isCharValid = this.validateCharOnPostion(char, this._cursor, mask);
+            if (nonLiteralIndices.indexOf(this._cursor) !== -1) {
+                const isCharValid = this.validateCharOnPosition(char, this._cursor, mask);
                 if (isCharValid) {
                     inputValue = this.replaceCharAt(inputValue, this._cursor++, char);
                 }
@@ -275,7 +276,7 @@ export class MaskHelper {
                     if (literalKeys.indexOf(this._cursor) !== -1) {
                         this._cursor++;
                     } else {
-                        const isCharValid = this.validateCharOnPostion(char, this._cursor, mask);
+                        const isCharValid = this.validateCharOnPosition(char, this._cursor, mask);
                         if (isCharValid) {
                             inputValue = this.replaceCharAt(inputValue, this._cursor++, char);
                         }
@@ -300,7 +301,7 @@ export class MaskHelper {
         return inputValue;
     }
 
-    private validateCharOnPostion(inputChar: string, position: number, mask: string): boolean {
+    private validateCharOnPosition(inputChar: string, position: number, mask: string): boolean {
         let regex: RegExp;
         let isValid: boolean;
         const letterOrDigitRegEx = '[\\d\\u00C0-\\u1FFF\\u2C00-\\uD7FFa-zA-Z]';
