@@ -23,7 +23,7 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
      * ```
      */
     @Input('igxMask')
-    public mask: string;
+    public mask = 'CCCCCCCCCC';
 
     /**
      * Sets the character representing a fillable spot in the input mask.
@@ -51,7 +51,6 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
      * ```
      */
     @DeprecateProperty('"placeholder" is deprecated, use native placeholder instead.')
-    @Input()
     public set placeholder(val: string) {
         this.renderer.setAttribute(this.nativeElement, 'placeholder', val);
     }
@@ -93,18 +92,18 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
     public onValueChange = new EventEmitter<IMaskEventArgs>();
 
     /** @hidden @internal; */
-    public get inputValue(): string {
+    protected get inputValue(): string {
         return this.nativeElement.value;
     }
 
-    /** @hidden @internal; */
-    public set inputValue(val) {
+    /** @hidden @internal */
+    protected set inputValue(val) {
         this.nativeElement.value = val;
     }
 
     /** @hidden */
     protected get maskOptions() {
-        const format = this.mask || 'CCCCCCCCCC';
+        const format = this.mask;
         const promptChar = this.promptChar && this.promptChar.substring(0, 1);
         return { format, promptChar };
     }
