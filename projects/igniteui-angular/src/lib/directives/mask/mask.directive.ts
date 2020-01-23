@@ -23,7 +23,7 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
      * ```
      */
     @Input('igxMask')
-    public mask = 'CCCCCCCCCC';
+    public mask: string;
 
     /**
      * Sets the character representing a fillable spot in the input mask.
@@ -103,7 +103,7 @@ export class IgxMaskDirective implements OnInit, ControlValueAccessor {
 
     /** @hidden */
     protected get maskOptions() {
-        const format = this.mask;
+        const format = this.mask || 'CCCCCCCCCC';
         const promptChar = this.promptChar && this.promptChar.substring(0, 1);
         return { format, promptChar };
     }
