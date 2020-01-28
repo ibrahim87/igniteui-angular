@@ -139,6 +139,14 @@ export class IgxTimePickerComponent implements
             };
             this.onValueChanged.emit(args);
         } else {
+            const minTime = this.minValue ? this._convertMinMaxValue(this.minValue) : null;
+            const maxTime = this.maxValue ? this._convertMinMaxValue(this.maxValue) : null;
+            if (maxTime && value > maxTime) {
+                this._value = maxTime;
+            } else if (minTime && value < minTime) {
+                this._value = minTime;
+            }
+
             const args: IgxTimePickerValidationFailedEventArgs = {
                 timePicker: this,
                 currentValue: value,
@@ -1259,7 +1267,7 @@ export class IgxTimePickerComponent implements
     }
 
     private _convertMinMaxValue(value: string): Date {
-        const date = this.value ? new Date(this.value) : this._dateFromModel ? new Date(this._dateFromModel) : new Date();
+        const date = this._dateFromModel ? new Date(this._dateFromModel) : this.value ? new Date(this.value) : new Date();
         const sections = value.split(/[\s:]+/);
         let hour, minutes, seconds, amPM;
 
@@ -1514,7 +1522,6 @@ export class IgxTimePickerComponent implements
         // use this flag to make sure that min/maxValue are checked (in _convertMinMaxValue() method)
         // against the real value when initializing the component and value is bound via ngModel
         this._dateFromModel = value;
-
         this.value = value;
 
         if (this.mode === InteractionMode.DropDown) {
